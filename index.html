@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bumper Launching Website GOW Anambas</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Playfair+Display:ital,wght@0,700;1,700&family=Amiri:wght@400;700&family=Scheherazade+New:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #0f172a; /* Slate 900 */
+            font-family: 'Inter', sans-serif;
+            color: white;
+        }
+
+        #animation-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* Canvas Background */
+        #particle-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+
+        /* Scenes */
+        .scene {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.8s ease-in-out; 
+            z-index: 10;
+        }
+
+        .scene.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* --- COUNTDOWN ANIMATIONS --- */
+        .spin-slow { animation: spin 4s linear infinite; }
+        .spin-reverse { animation: spinReverse 3s linear infinite; }
+        .number-pulse { animation: numberPulse 1.4s cubic-bezier(0, 0, 0.2, 1) forwards; }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes spinReverse { to { transform: rotate(-360deg); } }
+        @keyframes numberPulse {
+            0% { transform: scale(0.5); opacity: 0; }
+            40% { transform: scale(1.3); opacity: 1; }
+            80% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(1.5); opacity: 0; } 
+        }
+
+        /* --- ANIMATIONS --- */
+        .text-reveal-up {
+            animation: revealUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 0;
+            transform: translateY(30px);
+        }
+
+        .text-scale-in {
+            animation: scaleIn 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 0;
+            transform: scale(0.8);
+        }
+
+        .logo-spin-in {
+            animation: logoSpin 1.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            opacity: 0;
+            transform: scale(0) rotate(-180deg);
+        }
+
+        .blur-fade-out { animation: blurFadeOut 1s ease-in forwards; }
+
+        .slide-in-right {
+            animation: slideInRight 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 0;
+            transform: translateX(50px);
+        }
+        
+        .fade-in-slow {
+            animation: fadeInSlow 2.5s ease-in-out forwards;
+            opacity: 0;
+        }
+
+        .bar-grow { animation: barGrow 1s ease-out forwards; }
+        .bar-live {
+            animation: barFluctuate 2s ease-in-out infinite;
+            opacity: 1 !important; 
+        }
+
+        .pulse-slow { animation: pulseSlow 2s infinite; }
+
+        /* Keyframes */
+        @keyframes revealUp { to { opacity: 1; transform: translateY(0); } }
+        @keyframes scaleIn { to { opacity: 1; transform: scale(1); } }
+        @keyframes fadeInSlow {
+            0% { opacity: 0; transform: scale(0.9); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        @keyframes logoSpin { to { opacity: 1; transform: scale(1) rotate(0deg); } }
+        @keyframes blurFadeOut { to { opacity: 0; filter: blur(10px); transform: scale(1.1); } }
+        @keyframes slideInRight { to { opacity: 1; transform: translateX(0); } }
+        @keyframes barGrow {
+            0% { height: 0; opacity: 1; }
+            100% { height: var(--target-height); opacity: 1; }
+        }
+        @keyframes barFluctuate {
+            0%, 100% { height: var(--target-height); opacity: 1; }
+            50% { height: calc(var(--target-height) * 0.7); opacity: 1; }
+        }
+        @keyframes pulseSlow {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+        }
+
+        /* Specialized Classes */
+        .font-jawi { font-family: 'Amiri', serif; }
+        .font-arab-new { font-family: 'Scheherazade New', serif; }
+        .font-serif-display { font-family: 'Playfair Display', serif; }
+
+        .btn-start {
+            background: linear-gradient(to right, #db2777, #c026d3);
+            box-shadow: 0 0 20px rgba(219, 39, 119, 0.5);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .btn-start:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 40px rgba(219, 39, 119, 0.8);
+        }
+
+        .progress-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 4px;
+            background: linear-gradient(to right, #db2777, #fbbf24);
+            width: 0%;
+            transition: width 0.1s linear;
+            z-index: 100;
+        }
+        
+        .chart-bar-container {
+            display: flex;
+            align-items: flex-end;
+            gap: 16px;
+            height: 150px;
+        }
+        .chart-bar {
+            width: 40px;
+            background: linear-gradient(to top, #db2777, #f472b6);
+            border-radius: 8px 8px 0 0;
+            position: relative;
+            transform-origin: bottom;
+            opacity: 0; 
+        }
+
+        /* Audio Controls */
+        #audio-controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 50;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+        .btn-mute {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Background Music Element -->
+    <audio id="bgm" preload="auto" loop crossorigin="anonymous">
+        <source src="https://cdn.pixabay.com/audio/2023/09/06/audio_4031649964.mp3" type="audio/mpeg">
+    </audio>
+
+    <div id="animation-container">
+        <canvas id="particle-canvas"></canvas>
+        <div id="progress" class="progress-bar"></div>
+
+        <!-- Audio Mute Toggle (Appears after start) -->
+        <div id="audio-controls">
+            <button onclick="toggleMute()" class="btn-mute">
+                <i class="fas fa-volume-up" id="mute-icon"></i>
+            </button>
+        </div>
+
+        <!-- SCENE 0: START BUTTON -->
+        <div id="scene-start" class="scene active bg-slate-900/90 backdrop-blur-sm z-50">
+            <div class="text-center">
+                <div class="mb-6 relative w-24 h-24 mx-auto animate-bounce">
+                    <div class="absolute inset-0 bg-pink-500 rounded-full opacity-20 animate-ping"></div>
+                    <div class="relative w-full h-full bg-slate-800 rounded-full border-2 border-pink-500 flex items-center justify-center text-3xl">
+                       ✈️
+                    </div>
+                </div>
+                <h1 class="text-3xl font-bold mb-2 text-white">Launching Website GOW</h1>
+                <p class="text-slate-400 mb-6">Kabupaten Kepulauan Anambas</p>
+                
+                <button onclick="initAudioAndStart()" class="btn-start text-white font-bold py-3 px-8 rounded-full text-lg flex items-center gap-3 mx-auto">
+                    <i class="fas fa-play"></i> Yuk Kite Mulai
+                </button>
+                <p class="text-[10px] text-slate-600 mt-2 italic">*Disarankan menggunakan Headset untuk pengalaman terbaik</p>
+            </div>
+        </div>
+
+        <!-- SCENE COUNTDOWN -->
+        <div id="scene-countdown" class="scene">
+            <div class="relative flex items-center justify-center w-80 h-80">
+                <div class="absolute inset-0 border border-slate-700 rounded-full opacity-50 scale-110"></div>
+                <div class="absolute inset-0 border-t-4 border-l-4 border-pink-500 rounded-full spin-slow shadow-[0_0_20px_rgba(236,72,153,0.3)]"></div>
+                <div class="absolute inset-4 border-b-4 border-r-4 border-amber-400 rounded-full spin-reverse shadow-[0_0_20px_rgba(251,191,36,0.3)]"></div>
+                <div class="relative z-10 flex items-center justify-center w-full h-full">
+                    <h1 id="countdown-number" class="text-9xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400 drop-shadow-2xl opacity-0"></h1>
+                </div>
+                <div class="absolute top-0 left-1/2 -translate-x-1/2 w-1 h-4 bg-pink-500"></div>
+                <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-4 bg-pink-500"></div>
+                <div class="absolute left-0 top-1/2 -translate-y-1/2 w-4 h-1 bg-amber-400"></div>
+                <div class="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-1 bg-amber-400"></div>
+            </div>
+        </div>
+
+        <!-- SCENE BISMILLAH -->
+        <div id="scene-bismillah" class="scene">
+            <div class="text-center px-4 w-full">
+                <h1 class="font-arab-new text-5xl md:text-7xl leading-[1.6] py-12 text-transparent bg-clip-text bg-gradient-to-r from-amber-100 via-amber-300 to-amber-100 drop-shadow-[0_0_10px_rgba(251,191,36,0.5)] opacity-0 w-full break-words" id="sBismillah-text">
+                    بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ
+                </h1>
+            </div>
+        </div>
+
+        <!-- SCENE WELCOME -->
+        <div id="scene-welcome" class="scene">
+            <h1 class="text-5xl md:text-7xl font-serif-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-500 to-amber-200 mb-4 opacity-0 drop-shadow-lg tracking-wider text-center" id="sWelcome-text1">SELAMAT DATANG</h1>
+            <p class="text-xl md:text-2xl text-slate-300 font-light tracking-[0.2em] uppercase opacity-0 text-center" id="sWelcome-text2">Di Era Baru GOW Anambas</p>
+        </div>
+
+        <!-- SCENE 1 -->
+        <div id="scene-1" class="scene">
+            <h2 class="text-2xl md:text-4xl font-light tracking-[0.5em] text-slate-300 uppercase mb-4 opacity-0 text-center" id="s1-text1">Mempersembahkan</h2>
+            <div class="h-1 w-24 bg-pink-500 rounded-full opacity-0" id="s1-line"></div>
+        </div>
+
+        <!-- SCENE 2 -->
+        <div id="scene-2" class="scene">
+            <div class="text-center relative z-20">
+                <h1 class="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 mb-2 opacity-0" id="s2-text1">TRANSFORMASI</h1>
+                <h1 class="text-4xl md:text-6xl font-black text-white tracking-wider opacity-0" id="s2-text2">DIGITAL</h1>
+            </div>
+            <div class="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none z-10">
+                <code class="text-green-500 text-xs md:text-sm font-mono leading-loose">
+                    &lt;gow-anambas&gt;<br>
+                    &nbsp;&nbsp;launch(site: "gowanambaskab.id");<br>
+                    &nbsp;&nbsp;connect(public, "information");<br>
+                    &nbsp;&nbsp;deploy("digital_era");<br>
+                    &lt;/gow-anambas&gt;
+                </code>
+            </div>
+        </div>
+
+        <!-- SCENE 2.5 -->
+        <div id="scene-fitur" class="scene">
+            <h2 class="text-2xl font-bold text-white mb-8 opacity-0" id="sFitur-title">Akses Informasi Mudah</h2>
+            <div class="flex flex-col md:flex-row gap-6 md:gap-10">
+                <div class="flex flex-col items-center opacity-0" id="sFitur-1">
+                    <div class="w-16 h-16 rounded-xl bg-slate-800 border border-amber-500/50 flex items-center justify-center mb-3 shadow-[0_0_15px_rgba(245,158,11,0.3)]">
+                        <i class="fas fa-users text-2xl text-amber-400"></i>
+                    </div>
+                    <span class="text-sm font-semibold tracking-wide text-slate-300">PROFIL</span>
+                </div>
+                <div class="flex flex-col items-center opacity-0" id="sFitur-2">
+                    <div class="w-16 h-16 rounded-xl bg-slate-800 border border-green-500/50 flex items-center justify-center mb-3 shadow-[0_0_15px_rgba(34,197,94,0.3)]">
+                        <i class="fas fa-tasks text-2xl text-green-400"></i>
+                    </div>
+                    <span class="text-sm font-semibold tracking-wide text-slate-300">PROGRAM</span>
+                </div>
+                <div class="flex flex-col items-center opacity-0" id="sFitur-3">
+                    <div class="w-16 h-16 rounded-xl bg-slate-800 border border-blue-500/50 flex items-center justify-center mb-3 shadow-[0_0_15px_rgba(59,130,246,0.3)]">
+                        <i class="fas fa-newspaper text-2xl text-blue-400"></i>
+                    </div>
+                    <span class="text-sm font-semibold tracking-wide text-slate-300">BERITA</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCENE 2.8 -->
+        <div id="scene-data" class="scene">
+            <div class="relative bg-slate-800/50 p-8 rounded-2xl border border-slate-700 backdrop-blur-sm opacity-0" id="sData-card">
+                <div class="absolute -top-4 -left-4 w-12 h-12 bg-pink-500 rounded-full flex items-center justify-center shadow-lg animate-bounce">
+                    <i class="fas fa-chart-bar text-white text-lg"></i>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-6 pl-4">Data Terpilah & Transparan</h3>
+                <div class="chart-bar-container px-4">
+                    <div class="chart-bar" id="bar-1" style="--target-height: 40%; animation-delay: 0s;"></div>
+                    <div class="chart-bar" id="bar-2" style="--target-height: 70%; animation-delay: 0.2s;"></div>
+                    <div class="chart-bar" id="bar-3" style="--target-height: 55%; animation-delay: 0.5s;"></div>
+                    <div class="chart-bar" id="bar-4" style="--target-height: 90%; animation-delay: 0.1s;"></div>
+                    <div class="chart-bar" id="bar-5" style="--target-height: 65%; animation-delay: 0.3s;"></div>
+                </div>
+                <div class="mt-4 h-px w-full bg-slate-600"></div>
+                <p class="text-right text-xs text-slate-400 mt-2 flex items-center justify-end gap-2">
+                    <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Update Real-time
+                </p>
+            </div>
+        </div>
+
+        <!-- SCENE 3 -->
+        <div id="scene-3" class="scene">
+            <div class="bg-slate-800/80 p-8 rounded-3xl border border-pink-500/30 backdrop-blur-md transform scale-90 opacity-0 shadow-[0_0_50px_rgba(236,72,153,0.2)]" id="s3-card">
+                <div class="flex flex-col items-center text-center">
+                    <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center border border-slate-600 mb-4 shadow-lg pulse-slow">
+                        <i class="fas fa-globe text-4xl text-pink-500"></i>
+                    </div>
+                    <h2 class="text-3xl font-bold text-white mb-1">WEBSITE RESMI</h2>
+                    <p class="text-pink-400 text-sm font-semibold tracking-wider uppercase mb-4">GABUNGAN ORGANISASI WANITA</p>
+                    <div class="w-full bg-slate-700 h-px mb-4"></div>
+                    <p class="text-slate-300 italic">"Digitalisasi untuk Kemajuan"</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCENE 4 -->
+        <div id="scene-4" class="scene">
+            <div class="absolute w-[500px] h-[500px] bg-gradient-to-tr from-pink-600/20 to-amber-400/20 rounded-full blur-[100px] animate-pulse"></div>
+            <div class="relative z-10 flex flex-col items-center text-center px-4">
+                <img src="https://iili.io/FPZFHv9.png" alt="Logo GOW" class="h-32 md:h-48 mb-6 drop-shadow-2xl opacity-0" id="s4-logo" onerror="this.src='https://placehold.co/150x150/db2777/ffffff?text=GOW'">
+                <h2 class="font-jawi text-3xl text-amber-400 mb-2 opacity-0 drop-shadow-md" id="s4-jawi">ݢابوڠن اورݢانيساسي وانيتا</h2>
+                <h1 class="text-2xl md:text-4xl font-serif-display font-bold text-white mb-1 opacity-0" id="s4-title">GABUNGAN ORGANISASI WANITA</h1>
+                <p class="text-lg md:text-xl text-pink-400 font-medium tracking-wide opacity-0" id="s4-subtitle">KABUPATEN KEPULAUAN ANAMBAS</p>
+            </div>
+        </div>
+
+        <!-- SCENE 5 -->
+        <div id="scene-5" class="scene">
+            <div class="text-center">
+                <p class="text-slate-400 text-lg mb-2 opacity-0" id="s5-text1">Kunjungi Website Resmi Kami</p>
+                <div onclick="window.open('https://gowanambaskab.id', '_blank')" class="bg-white/10 border border-white/20 backdrop-blur-lg px-8 py-4 rounded-full mb-6 opacity-0 transform translate-y-4 cursor-pointer hover:scale-110 hover:bg-white/20 transition-all duration-300 shadow-lg hover:shadow-pink-500/50 group" id="s5-url-box" title="Klik untuk membuka website">
+                    <span class="text-2xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-pink-400 via-white to-pink-400 group-hover:text-white transition-colors">gowanambaskab.id</span>
+                    <div class="text-xs text-slate-400 mt-1 group-hover:text-pink-300"><i class="fas fa-external-link-alt mr-1"></i> Klik untuk membuka</div>
+                </div>
+                <p class="text-amber-400 font-serif-display italic text-xl opacity-0" id="s5-motto">"Perempuan Berdaya Anambas Jaya"</p>
+                
+                <button onclick="location.reload()" class="mt-12 text-slate-500 hover:text-white transition-colors text-sm opacity-0 flex items-center justify-center gap-2 mx-auto cursor-pointer" id="s5-replay">
+                    <i class="fas fa-redo"></i> Putar Ulang
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- AUDIO SYSTEM ---
+        let audioCtx;
+        const bgm = document.getElementById('bgm');
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function toggleMute() {
+            bgm.muted = !bgm.muted;
+            const icon = document.getElementById('mute-icon');
+            if(bgm.muted) {
+                icon.classList.remove('fa-volume-up');
+                icon.classList.add('fa-volume-mute');
+            } else {
+                icon.classList.remove('fa-volume-mute');
+                icon.classList.add('fa-volume-up');
+            }
+        }
+
+        // --- AIRPORT CHIME (THE "TING-TUNG" SOUND) ---
+        function playAirportChime() {
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            
+            // Tone 1: High (e.g., G#4)
+            const osc1 = audioCtx.createOscillator();
+            const gain1 = audioCtx.createGain();
+            osc1.type = 'sine';
+            osc1.frequency.setValueAtTime(415.3, now); // G#4
+            gain1.gain.setValueAtTime(0, now);
+            gain1.gain.linearRampToValueAtTime(0.3, now + 0.05);
+            gain1.gain.exponentialRampToValueAtTime(0.001, now + 1.8);
+            osc1.connect(gain1);
+            gain1.connect(audioCtx.destination);
+            osc1.start(now);
+            osc1.stop(now + 2.0);
+
+            // Tone 2: Low (e.g., E4) - delayed slightly
+            const osc2 = audioCtx.createOscillator();
+            const gain2 = audioCtx.createGain();
+            osc2.type = 'sine';
+            osc2.frequency.setValueAtTime(329.6, now + 0.6); // E4
+            gain2.gain.setValueAtTime(0, now + 0.6);
+            gain2.gain.linearRampToValueAtTime(0.3, now + 0.65);
+            gain2.gain.exponentialRampToValueAtTime(0.001, now + 2.4);
+            osc2.connect(gain2);
+            gain2.connect(audioCtx.destination);
+            osc2.start(now + 0.6);
+            osc2.stop(now + 2.5);
+        }
+
+        // SFX Generator
+        function playBeep(freq = 800, type = 'sine', duration = 0.1) {
+            if(!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        }
+
+        function playSwoosh() {
+            if(!audioCtx) return;
+            const bufferSize = audioCtx.sampleRate * 1; 
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = Math.random() * 2 - 1;
+            }
+
+            const noise = audioCtx.createBufferSource();
+            noise.buffer = buffer;
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = "lowpass";
+            filter.frequency.setValueAtTime(100, audioCtx.currentTime);
+            filter.frequency.exponentialRampToValueAtTime(3000, audioCtx.currentTime + 0.4);
+            filter.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.8);
+            const gain = audioCtx.createGain();
+            gain.gain.setValueAtTime(0, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + 0.3);
+            gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.8);
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+            noise.start();
+        }
+
+        function playDigitalType() {
+            playBeep(1200 + Math.random()*500, 'square', 0.05);
+        }
+        
+        function playClimax() {
+            const freqs = [220, 329.6, 440, 554, 660, 880];
+            freqs.forEach(f => {
+                playBeep(f, 'triangle', 3.0);
+            });
+        }
+
+        // --- VISUALS ---
+        const canvas = document.getElementById('particle-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+        let particles = [];
+        const colors = ['#db2777', '#fbbf24', '#3b82f6', '#ffffff'];
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+
+        class Particle {
+            constructor() { this.reset(); }
+            reset() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.vx = (Math.random() - 0.5) * 0.5;
+                this.vy = (Math.random() - 0.5) * 0.5;
+                this.size = Math.random() * 2 + 1;
+                this.color = colors[Math.floor(Math.random() * colors.length)];
+                this.alpha = Math.random() * 0.5 + 0.1;
+                this.targetAlpha = this.alpha;
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                if (this.x < 0 || this.x > width) this.vx *= -1;
+                if (this.y < 0 || this.y > height) this.vy *= -1;
+                if (Math.random() < 0.05) this.targetAlpha = Math.random() * 0.8 + 0.2;
+                this.alpha += (this.targetAlpha - this.alpha) * 0.05;
+            }
+            draw() {
+                ctx.globalAlpha = this.alpha;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function initParticles() {
+            particles = [];
+            for (let i = 0; i < 100; i++) { particles.push(new Particle()); }
+        }
+
+        function drawConnections() {
+            ctx.globalAlpha = 0.05;
+            ctx.strokeStyle = '#cbd5e1';
+            ctx.lineWidth = 0.5;
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const dx = particles[i].x - particles[j].x;
+                    const dy = particles[i].y - particles[j].y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 150) {
+                        ctx.beginPath();
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        function animateBg() {
+            ctx.clearRect(0, 0, width, height);
+            const gradient = ctx.createLinearGradient(0, 0, 0, height);
+            gradient.addColorStop(0, '#0f172a');
+            gradient.addColorStop(1, '#1e1b4b');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, width, height);
+            particles.forEach(p => { p.update(); p.draw(); });
+            drawConnections();
+            requestAnimationFrame(animateBg);
+        }
+
+        window.addEventListener('resize', () => { resize(); initParticles(); });
+        resize();
+        initParticles();
+        animateBg();
+
+        // --- ANIMATION SEQUENCE ---
+        const scenes = {
+            start: document.getElementById('scene-start'),
+            countdown: document.getElementById('scene-countdown'),
+            bismillah: document.getElementById('scene-bismillah'), 
+            welcome: document.getElementById('scene-welcome'),
+            1: document.getElementById('scene-1'),
+            2: document.getElementById('scene-2'),
+            fitur: document.getElementById('scene-fitur'),
+            data: document.getElementById('scene-data'),
+            3: document.getElementById('scene-3'),
+            4: document.getElementById('scene-4'),
+            5: document.getElementById('scene-5')
+        };
+
+        const progressBar = document.getElementById('progress');
+        // Reduced duration for tighter pacing
+        let totalDuration = 47000; 
+        let startTime;
+        let animationFrame;
+
+        function updateProgress() {
+            const elapsed = Date.now() - startTime;
+            const percent = Math.min((elapsed / totalDuration) * 100, 100);
+            progressBar.style.width = percent + '%';
+            if (percent < 100) {
+                animationFrame = requestAnimationFrame(updateProgress);
+            }
+        }
+
+        function switchScene(from, to) {
+            if (from && scenes[from]) {
+                scenes[from].classList.add('blur-fade-out');
+                setTimeout(() => {
+                    scenes[from].classList.remove('active', 'blur-fade-out');
+                }, 800);
+            }
+            if (scenes[to]) {
+                scenes[to].classList.add('active');
+            }
+        }
+
+        function animateElement(id, animationClass, delay = 0) {
+            setTimeout(() => {
+                const el = document.getElementById(id);
+                if(el) el.classList.add(animationClass);
+            }, delay);
+        }
+
+        function addFluctuation(id, delay) {
+            setTimeout(() => {
+                const el = document.getElementById(id);
+                if(el) {
+                    el.classList.remove('bar-grow');
+                    void el.offsetWidth;
+                    el.classList.add('bar-live');
+                }
+            }, delay);
+        }
+
+        // ENTRY POINT
+        function initAudioAndStart() {
+            initAudio();
+            
+            // Start BGM
+            bgm.load();
+            bgm.volume = 0.5; 
+            const playPromise = bgm.play();
+            if (playPromise !== undefined) {
+                playPromise.then(_ => {
+                    document.getElementById('audio-controls').style.opacity = 1;
+                }).catch(error => console.log("Audio Autoplay blocked"));
+            }
+
+            // Play initial Airport Chime instead of generic beep
+            playAirportChime(); 
+
+            startAnimation();
+        }
+
+        function startAnimation() {
+            scenes.start.classList.add('blur-fade-out');
+            setTimeout(() => scenes.start.classList.remove('active', 'blur-fade-out'), 500);
+            
+            startTime = Date.now();
+            updateProgress();
+
+            // === COUNTDOWN PHASE (0s - 7.5s) === 
+            switchScene(null, 'countdown');
+            const cdNum = document.getElementById('countdown-number');
+            
+            const beepTimes = [0, 1500, 3000, 4500, 6000];
+            const colors = ["#3b82f6", "#a855f7", "#db2777", "#fbbf24", "#22c55e"];
+            
+            beepTimes.forEach((time, index) => {
+                setTimeout(() => {
+                    cdNum.innerText = (5 - index).toString();
+                    cdNum.style.color = colors[index];
+                    cdNum.classList.remove('number-pulse');
+                    void cdNum.offsetWidth; 
+                    cdNum.classList.add('number-pulse');
+                    
+                    if(index === 4) {
+                        playBeep(880, 'square', 0.6); 
+                        playSwoosh(); 
+                    } else {
+                        playBeep(440 + (index * 50), 'sine', 0.1); 
+                    }
+                }, time);
+            });
+
+            // === MAIN SEQUENCE START ===
+            const T = 7500; 
+
+            // --- SCENE BISMILLAH (7.5s) --- 
+            setTimeout(() => {
+                switchScene('countdown', 'bismillah');
+                animateElement('sBismillah-text', 'fade-in-slow', 500);
+                playAirportChime(); // Airport Chime for Bismillah
+            }, T);
+
+            // --- SCENE WELCOME (12.5s) [Shifted 2s earlier] ---
+            setTimeout(() => {
+                playSwoosh();
+                switchScene('bismillah', 'welcome');
+                animateElement('sWelcome-text1', 'text-scale-in', 500);
+                animateElement('sWelcome-text2', 'text-reveal-up', 1200);
+            }, T + 5000);
+
+            // --- SCENE 1: Mempersembahkan (16.5s) [Shifted 2s earlier] ---
+            setTimeout(() => {
+                playSwoosh();
+                switchScene('welcome', 1);
+                animateElement('s1-text1', 'text-reveal-up', 500);
+                animateElement('s1-line', 'text-scale-in', 1000);
+            }, T + 9000);
+
+            // --- SCENE 2: Transformasi Digital (20s) [Shifted 2s earlier] ---
+            setTimeout(() => {
+                playSwoosh();
+                switchScene(1, 2);
+                animateElement('s2-text1', 'text-reveal-up', 500);
+                animateElement('s2-text2', 'text-reveal-up', 800);
+                
+                let typeInterval = setInterval(playDigitalType, 100);
+                setTimeout(() => clearInterval(typeInterval), 1500);
+            }, T + 12500);
+
+            // --- SCENE 2.5: FITUR (24s) [Shifted 2s earlier] ---
+            setTimeout(() => {
+                playSwoosh();
+                switchScene(2, 'fitur');
+                animateElement('sFitur-title', 'text-reveal-up', 300);
+                setTimeout(() => { animateElement('sFitur-1', 'slide-in-right'); playBeep(500, 'sine', 0.05); }, 800);
+                setTimeout(() => { animateElement('sFitur-2', 'slide-in-right'); playBeep(600, 'sine', 0.05); }, 1100);
+                setTimeout(() => { animateElement('sFitur-3', 'slide-in-right'); playBeep(700, 'sine', 0.05); }, 1400);
+            }, T + 16500);
+
+            // --- SCENE 2.8: DATA TERPILAH (28.5s) [Shifted 2s earlier] ---
+            setTimeout(() => {
+                playSwoosh();
+                switchScene('fitur', 'data');
+                animateElement('sData-card', 'text-scale-in', 300);
+                
+                [0, 200, 500, 100, 300].forEach((delay, i) => {
+                    setTimeout(() => playBeep(800 + (i*100), 'triangle', 0.05), 800 + delay);
+                });
+
+                animateElement('bar-1', 'bar-grow', 800);
+                animateElement('bar-2', 'bar-grow', 900);
+                animateElement('bar-3', 'bar-grow', 1000);
+                animateElement('bar-4', 'bar-grow', 1100);
+                animateElement('bar-5', 'bar-grow', 1200);
+
+                addFluctuation('bar-1', 2000);
+                addFluctuation('bar-2', 2100);
+                addFluctuation('bar-3', 2200);
+                addFluctuation('bar-4', 2300);
+                addFluctuation('bar-5', 2400);
+            }, T + 21000);
+
+            // --- SCENE 3: Website Reveal (34s) [Shifted 2s earlier] ---
+            setTimeout(() => {
+                playAirportChime(); // Chime again for reveal
+                switchScene('data', 3);
+                animateElement('s3-card', 'text-scale-in', 300);
+            }, T + 26500);
+
+            // --- SCENE 4: Logo Reveal (38s) [Shifted 2s earlier] ---
+            setTimeout(() => {
+                playClimax(); 
+                switchScene(3, 4);
+                animateElement('s4-logo', 'logo-spin-in', 200);
+                animateElement('s4-jawi', 'text-reveal-up', 1000);
+                animateElement('s4-title', 'text-reveal-up', 1300);
+                animateElement('s4-subtitle', 'text-reveal-up', 1600);
+            }, T + 30500);
+
+            // --- SCENE 5: CTA (42s) [Shifted 2s earlier] ---
+            setTimeout(() => {
+                playSwoosh();
+                switchScene(4, 5);
+                animateElement('s5-text1', 'text-reveal-up', 500);
+                animateElement('s5-url-box', 'text-scale-in', 800);
+                animateElement('s5-motto', 'text-reveal-up', 1500);
+                animateElement('s5-replay', 'text-reveal-up', 2500);
+                
+                // Fade out BGM slowly
+                let vol = bgm.volume;
+                let fade = setInterval(() => {
+                    if (vol > 0.05) {
+                        vol -= 0.05;
+                        bgm.volume = vol;
+                    } else {
+                        clearInterval(fade);
+                    }
+                }, 500);
+            }, T + 34500);
+        }
+
+    </script>
+</body>
+</html>
